@@ -9,7 +9,7 @@ import java.util.Properties;
 public class Productor {
 
     private static KafkaProducer<String, Object> producer;
-    private final static String TOPIC = "testDemo";
+    private final static String TOPIC = "sqltest";
     public Productor(){
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
@@ -25,7 +25,7 @@ public class Productor {
     }
     public void produce(String key,String value){
         producer.send(new ProducerRecord<String, Object>(TOPIC,key,value));
-//        producer.close();
+        producer.close();
     }
 
 

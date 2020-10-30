@@ -14,39 +14,41 @@ import com.alibaba.otter.canal.protocol.CanalEntry.RowChange;
 import com.alibaba.otter.canal.protocol.CanalEntry.RowData;
 
 public class ReadBInLog {
-    private  static  Productor productor = new Productor();
+//    private  static  Productor productor = new Productor();
 
     public static void main(String args[]) {
-        run();
-    }
-
-
-    public static void run(){
         // 创建链接
-        CanalConnector connector = (CanalConnector) CanalConnectors.newSingleConnector(new InetSocketAddress("47.101.161.52",
+        CanalConnector connector = CanalConnectors.newSingleConnector(new InetSocketAddress(AddressUtils.getHostIp(),
                 11111), "example", "", "");
         int batchSize = 1000;
+        int emptyCount = 0;
         try {
             connector.connect();
             connector.subscribe(".*\\..*");
             connector.rollback();
-            while (true) {
+            int totalEmptyCount = 120;
+            while (emptyCount < totalEmptyCount) {
                 Message message = connector.getWithoutAck(batchSize); // 获取指定数量的数据
                 long batchId = message.getId();
                 int size = message.getEntries().size();
                 if (batchId == -1 || size == 0) {
+                    emptyCount++;
 //                    System.out.println("empty count : " + emptyCount);
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                     }
                 } else {
+                    emptyCount = 0;
+                    // System.out.printf("message[batchId=%s,size=%s] \n", batchId, size);
                     printEntry(message.getEntries());
                 }
 
                 connector.ack(batchId); // 提交确认
+                // connector.rollback(batchId); // 处理失败, 回滚数据
             }
 
+            System.out.println("empty too many times, exit");
         } finally {
             connector.disconnect();
         }
@@ -71,19 +73,11 @@ public class ReadBInLog {
                     entry.getHeader().getLogfileName(), entry.getHeader().getLogfileOffset(),
                     entry.getHeader().getSchemaName(), entry.getHeader().getTableName(),
                     eventType));
-//            System.out.println(eventType==EventType.INSERT);
 
-            List<CanalEntry.RowData> list = rowChage.getRowDatasList();
-            int c = rowChage.getRowDatasCount();
-            System.out.println(list);
-            System.out.println(rowChage.getSql());
-//            productor.produce("test",rowChage.getSql());
-            for (RowData rowData : list) {
-                System.out.println(eventType==EventType.INSERT);
+            for (RowData rowData : rowChage.getRowDatasList()) {
                 if (eventType == EventType.DELETE) {
                     printColumn(rowData.getBeforeColumnsList());
                 } else if (eventType == EventType.INSERT) {
-                    System.out.println("------------------");
                     printColumn(rowData.getAfterColumnsList());
                 } else {
                     System.out.println("-------&gt; before");
@@ -96,7 +90,6 @@ public class ReadBInLog {
     }
 
     private static void printColumn(List<Column> columns) {
-        System.out.println(columns.toString());
         for (Column column : columns) {
             System.out.println(column.getName() + " : " + column.getValue() + "    update=" + column.getUpdated());
         }

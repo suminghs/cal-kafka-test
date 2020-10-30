@@ -10,7 +10,7 @@ import java.util.Properties;
 
 public class Customer {
     private static KafkaConsumer<String, String> consumer;
-    private final static String TOPIC = "testDemo";
+    private final static String TOPIC = "sqltest";
     public Customer(){
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");

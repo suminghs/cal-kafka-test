@@ -22,7 +22,7 @@ public class AppTest
 
     @Test
     public void demo1(){
-        ReadBInLog.run();
+//        ReadBInLog.run();
     }
 
     @Test
